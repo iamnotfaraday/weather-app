@@ -1,0 +1,15 @@
+# 依赖包文件夹 (太大了，不需要上传)
+node_modules/
+
+# 环境变量文件 (包含密钥，绝对不能上传！)
+.env
+.env.local
+.env.production
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 构建产物
+dist/
+build/
