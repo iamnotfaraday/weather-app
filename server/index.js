@@ -36,7 +36,8 @@ app.get('/api/weather', async (req, res) => {
       success: true,
       data: response.data
     });
-    // console.log("查询成功")
+    console.log("查询成功");
+    console.log(response.data);
 
   } catch (error) {
     // 错误处理
@@ -50,6 +51,33 @@ app.get('/api/weather', async (req, res) => {
     res.status(500).json({ success: false, message: '服务器内部错误' });
   }
 });
+
+
+// 3. 天气预报接口 (新增)
+app.get('/api/forecast', async (req, res) => {
+  const city = req.query.city;
+
+  if (!city) {
+    return res.status(400).json({ success: false, message: '请提供城市名称' });
+  }
+
+  try {
+    // 注意这里是 forecast 接口
+    const url = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${API_KEY}&units=metric&lang=zh_cn`;
+    const response = await axios.get(url);
+    
+    res.json({
+      success: true,
+      data: response.data.list // 预报数据在 list 数组里
+    });
+    console.log("预测的天气为:");
+    console.log(response.data.list[0]);
+  } catch (error) {
+    console.error('预报 API 请求失败:', error.message);
+    res.status(500).json({ success: false, message: '预报数据获取失败' });
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`🚀 服务器正在运行：http://localhost:${PORT}`);
