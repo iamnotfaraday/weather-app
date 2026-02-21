@@ -60,49 +60,55 @@ function App() {
 
   // 聚合预报数据为每日（取每天最高温、最低温、中午时段的天气图标）
   const dailyForecast = useMemo(() => {
-    console.log('forecast 类型:', typeof forecast)
-    console.log('forecast 值:', forecast)
-    console.log('是数组?', Array.isArray(forecast))
-    if (!forecast?.length) {
-      console.log("前端没有获取到预报数据")
-      return []
-    }
+    if (!Array.isArray(forecast)) return []
 
     const days = {}
-    console.log("有数据")
+    console.log(forecast)
     forecast.forEach(item => {
-      const date = new Date(item.dt * 1000).toDateString()
+      const date = item.dt_txt.split(' ')[0]
+      const hour = parseInt(item.dt_txt.split(' ')[1].split(':')[0])
 
       if (!days[date]) {
         days[date] = {
           dt: item.dt,
           temps: [],
-          icons: [],
-          descriptions: [],
-          main: item.weather[0].main
+          noonIcon: null,
+          noonDesc: '',
+          firstIcon: '',
+          firstDesc: ''
         }
       }
 
       days[date].temps.push(item.main.temp)
-      // 优先取中午12点的数据作为代表，如果没有就取第一个
-      const hour = new Date(item.dt * 1000).getHours()
-      if (hour >= 11 && hour <= 13) {
-        days[date].icons.unshift(item.weather[0].icon)
-        days[date].descriptions.unshift(item.weather[0].description)
-      } else {
-        days[date].icons.push(item.weather[0].icon)
-        days[date].descriptions.push(item.weather[0].description)
+
+      // 记录12点的
+      if (hour === 12) {
+        days[date].noonIcon = item.weather[0].icon
+        days[date].noonDesc = item.weather[0].description
+      }
+
+      // 记录第一个（最早的）
+      if (!days[date].firstIcon) {
+        days[date].firstIcon = item.weather[0].icon
+        days[date].firstDesc = item.weather[0].description
       }
     })
 
-    return Object.values(days).slice(0, 6).map(day => ({
-      dt: day.dt,
-      tempMax: Math.max(...day.temps),
-      tempMin: Math.min(...day.temps),
-      icon: day.icons[0] || '01d',
-      description: day.descriptions[0] || '',
-      main: day.main
-    }))
+    return Object.values(days)
+      .sort((a, b) => a.dt - b.dt)
+      .slice(0, 6)
+      .map((day, idx) => {
+        const dateStr = new Date(day.dt * 1000).toLocaleDateString('zh-CN')
+        console.log(`第${idx + 1}天:`, dateStr, '图标:', day.noonIcon ? '12点' : '最早', day.noonIcon || day.firstIcon)
+
+        return {
+          dt: day.dt,
+          tempMax: Math.max(...day.temps),
+          tempMin: Math.min(...day.temps),
+          icon: day.noonIcon || day.firstIcon,
+          description: day.noonDesc || day.firstDesc
+        }
+      })
   }, [forecast])
 
   // 获取天气图标对应的渐变背景
