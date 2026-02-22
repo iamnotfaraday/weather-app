@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 
 function App() {
   const [city, setCity] = useState('')
@@ -6,6 +6,76 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [forecast, setForecast] = useState(null)
   const [error, setError] = useState('')
+  const [history, setHistory] = useState(['默认城市']);
+  const [showHistory, setShowHistory] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const inputRef = useRef(null);
+  const historyRef = useRef(null);
+  const MAX_HISTORY = 10, STORAGE_KEY = "search_history";
+
+
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    console.log("进入了获取浏览器历史记录")
+    if (saved) {
+      setHistory(JSON.parse(saved));
+      console.log("获取的历史为: ", history)
+    }
+    console.log("没有获取到浏览器历史记录");
+  }, []);
+
+  const saveHistory = (newHistory) => {
+    console.log("存储历史记录城市, ", newHistory);
+    localStorage.getItem(STORAGE_KEY, JSON.stringify(newHistory));
+  }
+
+  const handleChange = (e) => {
+    const value = e.target.value;
+    setCity(value);
+    console.log("检测到输入, 将历史面板设置为false");
+    setShowHistory(false);
+  }
+
+  const handleFocus = () => {
+    console.log("聚焦了搜索框, 开始显示历史面板");
+    setShowHistory(true);
+    console.log("showHistory为: ", showHistory);
+    console.log("history的长度为: ", history.length);
+  }
+
+  // 点击外部关闭历史记录
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (historyRef.current && !historyRef.current.contains(e.target) &&
+        inputRef.current && !inputRef.current.contains(e.target)) {
+        console.log("点击了外部, 将历史面板设置为false");
+        setShowHistory(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+
+  }, [])
+
+  const handleSubmit = () => {
+    // e.preventDefault();
+    if (!city.trim()) return;
+
+    const newHistory = [city.trim(), ...history.filter(item => item !== city.trim())].slice(0, MAX_HISTORY)
+
+    setHistory(newHistory);
+    saveHistory(newHistory);
+    console.log("保存历史记录城市为", newHistory);
+    console.log("检测到提交, 将历史面板设置为false");
+    setShowHistory(false);
+
+  }
+
+  const handleHistoryClick = (item) => {
+    setCity(item);
+    setShowHistory(false);
+    inputRef.current?.focus();
+  }
 
   const fetchWeather = async () => {
     if (!city) return
@@ -39,7 +109,11 @@ function App() {
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') fetchWeather()
+    if (e.key === 'Enter') {
+      fetchWeather();
+      handleSubmit();
+
+    }
   }
 
   const formatTime = (timestamp) => {
@@ -95,7 +169,7 @@ function App() {
     })
 
     return Object.values(days)
-      .sort((a, b) => a.dt - b.dt)
+      // .sort((a, b) => a.dt - b.dt)
       .slice(0, 6)
       .map((day, idx) => {
         const dateStr = new Date(day.dt * 1000).toLocaleDateString('zh-CN')
@@ -136,18 +210,24 @@ function App() {
       <div className="w-full max-w-md">
 
         {/* 搜索区域 */}
-        <div className="bg-white rounded-3xl shadow-sm border border-neutral-100 p-2 mb-6 transition-shadow hover:shadow-md">
+        <div className="bg-white rounded-3xl shadow-sm border border-neutral-100 p-2 mb-6 transition-shadow hover:shadow-md relative">
           <div className="flex items-center">
             <input
               type="text"
+              ref={inputRef}
               className="flex-1 px-5 py-4 bg-transparent text-neutral-800 placeholder-neutral-400 focus:outline-none text-lg"
               placeholder="输入城市名称..."
               value={city}
-              onChange={(e) => setCity(e.target.value)}
+              onChange={handleChange}
               onKeyDown={handleKeyDown}
+              onFocus={handleFocus}
+              autoComplete="new-password"
             />
             <button
-              onClick={fetchWeather}
+              onClick={() => {
+                fetchWeather();
+                handleSubmit();
+              }}
               disabled={loading}
               className="px-6 py-3 bg-neutral-900 text-white rounded-2xl hover:bg-neutral-800 disabled:bg-neutral-300 transition-all duration-300 font-medium text-sm tracking-wide"
             >
@@ -164,6 +244,48 @@ function App() {
             </button>
           </div>
         </div>
+
+        {/* 历史记录下拉列表 */}
+        {showHistory && history.length > 0 && (
+          <div
+            ref={historyRef}
+            className="bg-white rounded-2xl shadow-lg border border-neutral-100 mb-6 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 absolute top-[100%] left-0 right-0 z-50"
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100 bg-neutral-50/50">
+              <span className="text-xs font-medium text-neutral-500 uppercase tracking-wider">搜索历史</span>
+              <button
+                type="button"
+                // onClick={handleClearHistory}
+                className="text-xs text-neutral-400 hover:text-red-500 transition-colors font-medium"
+              >
+                清空
+              </button>
+            </div>
+            <ul className="max-h-48 overflow-y-auto">
+              {history.map((item, index) => (
+                <li
+                  key={item}
+                  className={`flex items-center gap-3 px-5 py-3 cursor-pointer transition-colors ${index === highlightedIndex
+                    ? 'bg-neutral-100'
+                    : 'hover:bg-neutral-50'
+                    }`}
+                // onClick={() => handleHistoryClick(item)}
+                // onMouseEnter={() => setHighlightedIndex(index)}
+                >
+                  <span className="text-neutral-400 text-sm">🕐</span>
+                  <span className="flex-1 text-neutral-700 text-sm font-medium">{item}</span>
+                  <button
+                    type="button"
+                    // onClick={(e) => handleDeleteHistory(e, item)}
+                    className="w-6 h-6 flex items-center justify-center rounded-full text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-all text-xs"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* 错误提示 */}
         {error && (
@@ -275,12 +397,14 @@ function App() {
         )}
 
         {/* 空状态 */}
-        {!weather && !loading && !error && (
+        {/* {!weather && !loading && !error && (
           <div className="text-center py-12 text-neutral-400">
             <p className="text-sm">输入城市名称查看天气</p>
           </div>
-        )}
+        )} */}
       </div>
+
+
     </div>
   )
 }
