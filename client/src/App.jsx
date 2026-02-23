@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import SearchBar from './components/searchBar'
+import HistoryDropdown from './components/HistoryDropdown'
 
 function App() {
   const [city, setCity] = useState('')
@@ -7,12 +8,12 @@ function App() {
   const [loading, setLoading] = useState(false)
   const [forecast, setForecast] = useState(null)
   const [error, setError] = useState('')
-  const [history, setHistory] = useState(['默认城市']);
+  const [history, setHistory] = useState(['北京', '上海', '重庆']);
   const [showHistory, setShowHistory] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const inputRef = useRef(null);
   const historyRef = useRef(null);
-  const MAX_HISTORY = 10, STORAGE_KEY = "search_history";
+  const MAX_HISTORY = 5, STORAGE_KEY = "search_history";
 
 
   useEffect(() => {
@@ -26,22 +27,25 @@ function App() {
   }, []);
 
   const saveHistory = (newHistory) => {
-    console.log("存储历史记录城市, ", newHistory);
+    console.log("saveHsitory: 存储历史记录城市" + newHistory);
     localStorage.getItem(STORAGE_KEY, JSON.stringify(newHistory));
   }
 
   const handleChange = (e) => {
     const value = e.target.value;
     setCity(value);
-    console.log("检测到输入, 将历史面板设置为false");
     setShowHistory(false);
+    console.log("handleChange: 检测到变化, 历史面板设置为" + showHistory);
+
   }
 
   const handleFocus = () => {
-    console.log("聚焦了搜索框, 开始显示历史面板");
     setShowHistory(true);
-    console.log("showHistory为: ", showHistory);
-    console.log("history的长度为: ", history.length);
+    setShowHistory(true);
+    console.log("handleFocus: 聚焦了搜索框, 历史面板设置为" + showHistory);
+
+    // console.log("handleFocus: showHistory为" + showHistory);
+    console.log("handleFocus: history长度为" + history.length);
   }
 
   // 点击外部关闭历史记录
@@ -49,14 +53,18 @@ function App() {
     const handleClickOutside = (e) => {
       if (historyRef.current && !historyRef.current.contains(e.target) &&
         inputRef.current && !inputRef.current.contains(e.target)) {
-        console.log("点击了外部, 将历史面板设置为false");
         setShowHistory(false);
+        console.log("点击了外部, 历史面板设置为" + showHistory);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
 
   }, [])
+
+  useEffect(() => {
+    console.log('showHistory新值:', showHistory)  // true
+  }, [showHistory])
 
   const handleSubmit = () => {
     // e.preventDefault();
@@ -66,9 +74,10 @@ function App() {
 
     setHistory(newHistory);
     saveHistory(newHistory);
-    console.log("保存历史记录城市为", newHistory);
-    console.log("检测到提交, 将历史面板设置为false");
+    console.log("handleSubmit: 保存历史记录城市为" + newHistory);
+
     setShowHistory(false);
+    console.log("handleSubmit: 将历史面板设置为" + showHistory);
 
   }
 
@@ -76,6 +85,21 @@ function App() {
     setCity(item);
     setShowHistory(false);
     inputRef.current?.focus();
+    console.log("handleHistoryClick: 将历史面板设置为" + showHistory);
+  }
+
+  const handleDeleteHistory = (e, item) => {
+    e.stopPropagation();
+    const newHistory = history.filter(h => h !== item);
+    setHistory(newHistory);
+    saveHistory(newHistory);
+    console.log("handleDeleteHistory: 删除了历史记录" + newHistory);
+  }
+
+  const handleClearHistory = () => {
+    setHistory([]);
+    saveHistory([]);
+    console.log("handleClearHistory: 清空了历史记录");
   }
 
   const fetchWeather = async () => {
@@ -110,10 +134,30 @@ function App() {
   }
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter') {
+    if (showHistory && history.length != 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setHighlightedIndex(prev => prev < history.length - 1 ? prev + 1 : prev);
+        console.log("handleKeyDown: 在历史记录面板中按了↓键")
+
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setHighlightedIndex(prev => prev > 0 ? prev - 1 : prev);
+        console.log("handleKeyDown: 在历史记录面板中按了↑键")
+
+      } else if (e.key === 'Escape') {
+        setShowHistory(false);
+        console.log("handleKeyDown: 在历史记录面板中按了Esc键")
+      } else if (e.key === 'Enter' && highlightedIndex >= 0) {
+        e.preventDefault();
+        handleHistoryClick(history[highlightedIndex]);
+        console.log("handleKeyDown: 在历史记录面板按了Enter键盘")
+        console.log("handleKeyDown: 将" + history[highlightedIndex] + "置入搜索框");
+      }
+    } else if (e.key === 'Enter') {
       fetchWeather();
       handleSubmit();
-
+      console.log("handleKeyDown: 历史记录面部未打开, 执行提交");
     }
   }
 
@@ -210,8 +254,9 @@ function App() {
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6 font-sans">
       <div className="w-full max-w-md">
 
-        {/* 搜索区域 */}
+        
         <div className="relative mb-6">
+          {/* 搜索区域 */}
           <SearchBar
             ref={inputRef}
             city={city}
@@ -222,49 +267,22 @@ function App() {
             loading={loading}
           />
 
+          {/* 历史记录下拉列表 */}
+          <HistoryDropdown
+            ref={historyRef}
+            history={history}
+            onClearHistory={handleClearHistory}
+            onHistoryClick={handleHistoryClick}
+            onHighlightedIndex={setHighlightedIndex}
+            onDeleteHistory={handleDeleteHistory}
+            highlightedIndex={highlightedIndex}
+            showHistory={showHistory}
+            className="absolute top-full left-0 right-0 z-50 mt-2"
+          />
+
         </div>
 
-        {/* 历史记录下拉列表 */}
-        {showHistory && history.length > 0 && (
-          <div
-            ref={historyRef}
-            className="bg-white rounded-2xl shadow-lg border border-neutral-100 mb-6 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 absolute top-[100%] left-0 right-0 z-50"
-          >
-            <div className="flex items-center justify-between px-5 py-3 border-b border-neutral-100 bg-neutral-50/50">
-              <span className="text-xs font-medium text-neutral-500 uppercase tracking-wider">搜索历史</span>
-              <button
-                type="button"
-                // onClick={handleClearHistory}
-                className="text-xs text-neutral-400 hover:text-red-500 transition-colors font-medium"
-              >
-                清空
-              </button>
-            </div>
-            <ul className="max-h-48 overflow-y-auto">
-              {history.map((item, index) => (
-                <li
-                  key={item}
-                  className={`flex items-center gap-3 px-5 py-3 cursor-pointer transition-colors ${index === highlightedIndex
-                    ? 'bg-neutral-100'
-                    : 'hover:bg-neutral-50'
-                    }`}
-                // onClick={() => handleHistoryClick(item)}
-                // onMouseEnter={() => setHighlightedIndex(index)}
-                >
-                  <span className="text-neutral-400 text-sm">🕐</span>
-                  <span className="flex-1 text-neutral-700 text-sm font-medium">{item}</span>
-                  <button
-                    type="button"
-                    // onClick={(e) => handleDeleteHistory(e, item)}
-                    className="w-6 h-6 flex items-center justify-center rounded-full text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-all text-xs"
-                  >
-                    ✕
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+
 
         {/* 错误提示 */}
         {error && (
