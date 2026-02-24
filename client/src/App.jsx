@@ -115,15 +115,18 @@ function App() {
 
     try {
       const baseUrl = import.meta.env.VITE_API_BASE_URL
-      const currentWeatherPromise = fetch(`${baseUrl}/api/weather?city=${city}`).then(res => res.json())
-      const forecastPromise = fetch(`${baseUrl}/api/forecast?city=${city}`).then(res => res.json())
+      const currentWeatherPromise = fetch(`${baseUrl}/api/weather/current?city=${city}`).then(res => res.json())
+      const forecastPromise = fetch(`${baseUrl}/api/weather/forecast?city=${city}`).then(res => res.json())
 
       const [weatherRes, forecastRes] = await Promise.all([currentWeatherPromise, forecastPromise])
 
       if (!weatherRes.success) {
+        console.log("weatherFetch error");
         throw new Error(weatherRes.message)
       }
       if (!forecastRes.success) {
+        console.log("forecastFetch error");
+
         throw new Error(forecastRes.message)
       }
 
