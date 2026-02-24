@@ -129,7 +129,7 @@ function App() {
 
         throw new Error(forecastRes.message)
       }
-
+      console.log("当前是否命中?", weatherRes.formCache, forecastRes.formCache);
       setWeather(weatherRes.data)
       setForecast(forecastRes.data)
     } catch (err) {

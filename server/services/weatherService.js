@@ -2,12 +2,28 @@ const axios = require('axios');
 
 const API_KEY = process.env.OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
+const { weatherCache } = require('../config/database');
+console.log('weatherCache:', weatherCache);
+// 缓存有效期 (15min)
+const CACHE_TTL = 15 * 60 * 1000;
 
 /**
  * 获取城市天气信息
  * @param {string} city - 城市名称
  * @returns {Promise<{success: boolean, data?: object, message?: string, fromCache?: boolean}>}
  */
+
+// 判断缓存是否过期
+const isExpired = (cache) => {
+  if (!cache) return true;
+  // prisma 返回bigint, mysql返回number, 这里转换一下
+  const expiresAt = typeof cache.expiresAt === 'bigint'
+    ? Number(cache.expiresAt) : cache.expiresAt;
+
+  return expiresAt < Date.now();
+}
+
+// 获取天气(带缓存)
 const getWeather = async (city) => {
   // 参数验证
   if (!city || typeof city !== 'string') {
@@ -18,8 +34,8 @@ const getWeather = async (city) => {
   }
 
   // 清理城市名（去除首尾空格）
-  const trimmedCity = city.trim();
-  
+  const trimmedCity = city.trim().toLowerCase();
+
   if (!trimmedCity) {
     return {
       success: false,
@@ -27,55 +43,73 @@ const getWeather = async (city) => {
     };
   }
 
+  // 判断是否查询缓存
+  const cached = await weatherCache.get(trimmedCity);
+  if (cached && !isExpired(cached)) {
+    console.log(`✅ current命中缓存：${trimmedCity}`);
+    return {
+      success: true,
+      data: cached.weatherData,
+      fromCache: true
+    };
+  }
+
+  if (cached) {
+    await weatherCache.del(trimmedCity);
+  }
+
   try {
     // 构造 URL（注意：去掉 q= 后面的空格！）
     const url = `${BASE_URL}/weather?q=${encodeURIComponent(trimmedCity)}&appid=${API_KEY}&units=metric&lang=zh_cn`;
-    
+
     const response = await axios.get(url);
-    
+    const weatherData = response.data;
+
     console.log(`[WeatherService] 查询成功: ${trimmedCity}`);
-    
+    // 写入缓存
+    // const updatedAt = Date.now();
+    const expiresAt = Date.now() + CACHE_TTL;
+
+    await weatherCache.set(trimmedCity, weatherData, expiresAt);
+
     return {
       success: true,
-      data: response.data,
+      data: weatherData,
       fromCache: false
     };
 
   } catch (error) {
-    console.error('[WeatherService] API 请求失败:', error.message);
+    console.error(`[WeatherService] 查询失败: ${trimmedCity}`, error.message);
+    // 区分错误类型
+    if (error.response) {
+      const status = error.response.status;
 
-    // // 区分错误类型
-    // if (error.response) {
-    //   const status = error.response.status;
-      
-    //   if (status === 404) {
-    //     return {
-    //       success: false,
-    //       message: `未找到城市: "${trimmedCity}"，请检查拼写`
-    //     };
-    //   }
-      
-    //   if (status === 401) {
-    //     return {
-    //       success: false,
-    //       message: 'API 密钥无效或已过期'
-    //     };
-    //   }
-      
-    //   return {
-    //     success: false,
-    //     message: `天气服务错误 (HTTP ${status})`
-    //   };
-    // }
+      if (status === 404) {
+        return {
+          success: false,
+          message: `未找到城市: "${trimmedCity}"，请检查拼写`
+        };
+      }
 
-    // // 网络错误或其他错误
-    // return {
-    //   success: false,
-    //   message: '网络请求失败，请稍后重试'
-    // };
+      if (status === 401) {
+        return {
+          success: false,
+          message: 'API 密钥无效或已过期'
+        };
+      }
+
+      return {
+        success: false,
+        message: `天气服务错误 (HTTP ${status})`
+      };
+    }
+
+    // 网络错误或其他错误
+    return {
+      success: false,
+      message: '网络请求失败，请稍后重试'
+    };
   }
 };
 
-module.exports = {
-  getWeather
-};
+module.exports = { getWeather };
