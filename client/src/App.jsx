@@ -258,7 +258,7 @@ function App() {
 
   return (
     <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-6 font-sans">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-xl">
 
         <div className="relative mb-6">
           {/* 搜索区域 */}
