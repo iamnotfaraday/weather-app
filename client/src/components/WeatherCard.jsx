@@ -1,6 +1,6 @@
 import TemperatureChart from "./TemperatureChart";
 
-const WeatherCard = ({ weather, dailyForecast, formatDate, formatTime, getWeatherGradient, getWeatherColor }) => {
+const WeatherCard = ({ weather, dailyForecast, formatDate, formatTime, getWeatherGradient}) => {
   if (!weather) return null;
 
   const gradient = getWeatherGradient(weather.weather[0].icon);
