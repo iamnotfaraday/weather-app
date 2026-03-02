@@ -4,7 +4,7 @@ async function get(city) {
   const cache = await prisma.weatherForecastCache.findUnique({
     where: { city: city.toLowerCase() }
   });
-  console.log("使用了");
+
   if (!cache) return null;
 
   return {
