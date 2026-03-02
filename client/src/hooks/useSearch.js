@@ -20,8 +20,8 @@ export function useSearch() {
   const handleHistorySelect = useCallback((selectedCity) => {
     setCity(selectedCity)
     setShowHistory(false)
-    fetchWeather(selectedCity)
-  }, [fetchWeather])
+    // fetchWeather(selectedCity)
+  }, [])
 
   return {
     // 状态

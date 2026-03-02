@@ -38,17 +38,31 @@ function App() {
   const { highlightedIndex, setHighlightedIndex, handleKeyDown } = useKeyboardNavigation(
     history,
     handleHistorySelect,
-    () => setShowHistory(false)
+    () => setShowHistory(false),
+    showHistory
   )
+
+  // 单独处理搜索框的 Enter
+  const handleSearchKeyDown = (e) => {
+    // 先让 useKeyboardNavigation 处理
+    handleKeyDown(e)
+    console.log("现在说明在按上下键盘或者enter了");
+    // 如果面板关闭且按了 Enter，执行搜索
+    if (e.key === 'Enter' && !showHistory) {
+      handleSearch()
+    }
+  }
 
   // 处理输入变化
   const handleChange = (e) => {
     setCity(e.target.value)
+    console.log("输入有变");
     setShowHistory(false)
   }
 
   // 处理聚焦
   const handleFocus = () => {
+    console.log("聚焦了, setShowHistory true");
     setShowHistory(true)
   }
 
@@ -70,8 +84,8 @@ function App() {
   }
 
   // 处理每日预报
-  const dailyForecast = useMemo(() => 
-    processDailyForecast(forecast), 
+  const dailyForecast = useMemo(() =>
+    processDailyForecast(forecast),
     [forecast]
   )
 
@@ -83,7 +97,7 @@ function App() {
             ref={inputRef}
             city={city}
             onChange={handleChange}
-            onKeyDown={handleKeyDown}
+            onKeyDown={handleSearchKeyDown}
             onFocus={handleFocus}
             onSearch={handleSearch}
             loading={loading}
@@ -96,6 +110,7 @@ function App() {
             onHistoryClick={handleHistorySelect}
             onDeleteHistory={handleDeleteHistory}
             onHighlightedIndex={setHighlightedIndex}
+            // onKeyDown={handleSearchKeyDown}
             highlightedIndex={highlightedIndex}
             showHistory={showHistory}
             className="absolute top-full left-0 right-0 z-50 mt-2"
