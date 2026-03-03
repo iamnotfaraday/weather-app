@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react"
 
-export function useKeyboardNavigation(items, onSelect, onClose, showHistory) {
+export function useKeyboardNavigation(items, onSelect, onClose, showHistory, onSearch) {
   const [highlightedIndex, setHighlightedIndex] = useState(-1)
 
   const handleKeyDown = useCallback((e) => {
@@ -8,7 +8,7 @@ export function useKeyboardNavigation(items, onSelect, onClose, showHistory) {
     console.log("handKeyDown 判断是否处理");
     if (!showHistory || !items || items.length === 0) {
       console.log("handleKeyDown 判断不处理");
-      return ;
+      return;
     }
 
     switch (e.key) {
@@ -32,7 +32,8 @@ export function useKeyboardNavigation(items, onSelect, onClose, showHistory) {
           e.preventDefault()
           onSelect(items[highlightedIndex])
         } else {
-          console.log("highlightedIndex < 0, enter无效, 这里调皮的用户通过先输入内容在搜索框, 然后再点击外部关闭了历史面板, 然后再点击搜索框使其聚焦打开面板, 但这里是可以enter的, 因为有了值, 但是用户却没有通过键鼠动作给hightlightedINdex赋值, 但其实这里应该执行搜索对吧");
+          console.log("enter bug, 应执行搜素");
+          onSearch();
         }
         break
 

@@ -39,7 +39,8 @@ function App() {
     history,
     handleHistorySelect,
     () => setShowHistory(false),
-    showHistory
+    showHistory,
+    handleSearch
   )
 
   // 单独处理搜索框的 Enter
