@@ -5,12 +5,16 @@ const cors = require('cors');
 const routes = require('./routes');
 const errorHandler = require('./middlewares/errorHandler');
 const rateLimiter = require('./middlewares/rateLimiter');
+const requestLogger = require('./middlewares/requestLogger');
+const logger = require('./config/logger');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // 中间件
 app.use(cors());
 app.use(express.json());
+// 注册请求日志中间件（在所有路由之前）
+app.use(requestLogger)
 // 注册限流中间件（在所有路由之前）
 app.use('/api/weather', rateLimiter)  // ← 只对天气接口限流
 // 注册路由
@@ -25,7 +29,8 @@ app.use(errorHandler);
 // });
 
 app.listen(PORT, () => {
-  console.log(`🚀 服务器正在运行：http://localhost:${PORT}`);
-  console.log(`📍 健康检查：http://localhost:${PORT}/api/system/health`);
-  console.log(`🛑 限流：每分钟最多 5 次请求`);
+  logger.info(`🚀 服务器正在运行：http://localhost:${PORT}`);
+  logger.info(`📍 健康检查：http://localhost:${PORT}/api/system/health`);
+  logger.info(`🛑 限流：每分钟最多 5 次请求`);
+  logger.info(`💾 数据库方案：${process.env.DB_PROVIDER || 'mysql'}`)
 });

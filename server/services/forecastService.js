@@ -3,13 +3,10 @@ const axios = require('axios');
 const API_KEY = process.env.OPENWEATHER_API_KEY;
 const BASE_URL = 'https://api.openweathermap.org/data/2.5';
 const { forecastCache } = require('../config/database');
+const logger = require('../config/logger');
 
 // 缓存有效期 (15min)
 const CACHE_TTL = 15 * 60 * 1000;
-
-/**
- * 获取天气预报 (5天/3小时)
- */
 
 // 判断缓存是否过期
 const isExpired = (cache) => {
@@ -41,11 +38,11 @@ const getForecast = async (city) => {
       message: '城市名称不能为空'
     };
   }
-
+  logger.debug(`查询天气: ${trimmedCity}`);
   // 判断是否查询缓存
   const cached = await forecastCache.get(trimmedCity);
   if (cached && !isExpired(cached)) {
-    console.log(`✅ forecast命中缓存：${trimmedCity}`);
+    logger.info(`✅ forecast命中缓存：${trimmedCity}`);
     return {
       success: true,
       data: cached.forecastData,
@@ -63,7 +60,7 @@ const getForecast = async (city) => {
     const response = await axios.get(url);
     const forecastData = response.data.list;
 
-    console.log(`[forecastService] 预报查询成功: ${trimmedCity}`);
+    logger.info(`[forecastService] 预报查询成功: ${trimmedCity}`);
     // 写入缓存
     const expiresAt = Date.now() + CACHE_TTL;
     await forecastCache.set(trimmedCity, forecastData, expiresAt);
@@ -74,7 +71,7 @@ const getForecast = async (city) => {
       fromCache: false
     };
   } catch (error) {
-    console.error(`[forecastService] 查询失败: ${trimmedCity}`, error.message);
+    logger.error(`[forecastService] 查询失败: ${trimmedCity}`, error.message);
     // 区分错误类型
     if (error.response) {
       const status = error.response.status;

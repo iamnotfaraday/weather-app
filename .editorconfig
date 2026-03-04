@@ -1,0 +1,16 @@
+# 表示这是根配置文件，停止向上查找
+root = true
+
+# 对所有文件生效
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+# 针对特定文件类型的特殊配置（可选）
+# 例如：Markdown 文件通常保持原有缩进，不强制转换
+[*.md]
+trim_trailing_whitespace = false

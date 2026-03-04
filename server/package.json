@@ -3,9 +3,38 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --coverage --detectOpenHandles",
+    "test:watch": "jest --watch",
     "start": "node index.js",
     "dev": "nodemon index.js"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "coverageDirectory": "coverage",
+    "collectCoverageFrom": [
+      "services/**/*.js",
+      "controllers/**/*.js",
+      "middlewares/**/*.js",
+      "routes/**/*.js",
+      "config/**/*.js",
+      "utils/**/*.js",
+      "!**/node_modules/**",
+      "!logs/**",
+      "!coverage/**"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.js",
+      "**/*.test.js",
+      "**/*.spec.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "branches": 80,
+        "functions": 80,
+        "lines": 80,
+        "statements": 80
+      }
+    }
   },
   "keywords": [],
   "author": "",
@@ -18,9 +47,13 @@
     "dotenv": "^17.3.1",
     "express": "^5.2.1",
     "mysql2": "^3.17.5",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.11",
+    "supertest": "^7.2.2"
   }
 }

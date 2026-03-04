@@ -10,6 +10,7 @@ node_modules/
 .DS_Store
 Thumbs.db
 .vscode
+logs/
 
 # 构建产物
 dist/
