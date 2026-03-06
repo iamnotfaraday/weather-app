@@ -7,6 +7,8 @@ const errorHandler = require('./middlewares/errorHandler');
 const rateLimiter = require('./middlewares/rateLimiter');
 const requestLogger = require('./middlewares/requestLogger');
 const logger = require('./config/logger');
+const {connect: redisConnect} = require('./db/redis/client');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -28,9 +30,17 @@ app.use(errorHandler);
 //   res.json({ success: true, message: '后端服务器运行正常！' });
 // });
 
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   logger.info(`🚀 服务器正在运行：http://localhost:${PORT}`);
   logger.info(`📍 健康检查：http://localhost:${PORT}/api/system/health`);
   logger.info(`🛑 限流：每分钟最多 5 次请求`);
-  logger.info(`💾 数据库方案：${process.env.DB_PROVIDER || 'mysql'}`)
+  // logger.info(`💾 数据库方案：${process.env.DB_PROVIDER || 'mysql'}`)
+  if(process.env.DB_TYPE === 'redis') {
+    try {
+      await redisConnect();
+      logger.info('✅ Redis 连接成功')
+    } catch (err) {
+      logger.error('❌ Redis 连接失败:', err.message)
+    }
+  }
 });
